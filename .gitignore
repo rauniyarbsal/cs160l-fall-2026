@@ -35,5 +35,6 @@ build/
 *.iml
 *.class
 
+.run/
 SETUP.md
 VERIFICATION.md

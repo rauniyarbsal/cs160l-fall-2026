@@ -1,9 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="NaiveSort" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="NaiveSort" />
-    <module name="cs160l-fall-2026.main" />
-    <option name="PROGRAM_PARAMETERS" value="mx my mz" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-    <method v="2"><option name="Make" enabled="true" /></method>
-  </configuration>
-</component>
