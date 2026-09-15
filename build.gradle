@@ -1,0 +1,89 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Use the installed JDK. No Java 17 installation or toolchain is required.
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+}
+
+// Change lab in gradle.properties and reload Gradle in IntelliJ each week.
+def lab = providers.gradleProperty('lab').getOrElse('1')
+def availableLabs = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11', '12', '13']
+if (!availableLabs.contains(lab)) {
+    throw new GradleException("Unknown lab '${lab}'. Choose one of: ${availableLabs.join(', ')}")
+}
+
+sourceSets {
+    main.java.setSrcDirs(["Lab${lab}/src/main/java"])
+    test.java.setSrcDirs(["Lab${lab}/src/test/java"])
+    setupCheck {
+        java.setSrcDirs(['verification/src/test/java'])
+        resources.setSrcDirs([])
+    }
+}
+
+configurations {
+    setupCheckImplementation.extendsFrom testImplementation
+    setupCheckRuntimeOnly.extendsFrom testRuntimeOnly
+    mockitoAgent
+}
+
+dependencies {
+    // All existing tests use JUnit 4 or JUnit Jupiter; keep both supported.
+    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.junit.platform:junit-platform-suite-api'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    testImplementation 'org.assertj:assertj-core:3.27.3'
+    testImplementation 'org.mockito:mockito-core:5.23.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.23.0'
+    mockitoAgent('org.mockito:mockito-core:5.23.0') { transitive = false }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    // Explicit startup agent avoids Mockito's dynamic self-attachment.
+    jvmArgumentProviders.add({
+        ["-javaagent:${configurations.mockitoAgent.singleFile.absolutePath}"]
+    } as CommandLineArgumentProvider)
+    testLogging {
+        events 'failed', 'skipped'
+        exceptionFormat = 'full'
+    }
+}
+
+tasks.register('verifySetup', Test) {
+    group = 'verification'
+    description = 'Checks JUnit 4, JUnit 5, AssertJ and Mockito independently of student exercises.'
+    testClassesDirs = sourceSets.setupCheck.output.classesDirs
+    classpath = sourceSets.setupCheck.runtimeClasspath
+}
+
+['Lab1', 'NaiveSort'].each { entryPoint ->
+    tasks.register("run${entryPoint}", JavaExec) {
+        group = 'application'
+        description = "Runs ${entryPoint}; use --args='mx my mz' for promotion order."
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = entryPoint
+        doFirst {
+            if (lab != '1') {
+                throw new GradleException('This task requires Lab 1. Set lab=1 or pass -Plab=1.')
+            }
+        }
+    }
+}
